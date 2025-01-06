@@ -37,12 +37,22 @@ async function run() {
 
     app.get("/getVisas", async (req, res) => {
       const visaType = req.query.visaType;
+      const search = req.query.search;
+      const sort = req.query.sort;
       let query = {};
+      let options = {};
+
+      if (sort) options = { sort: { fee: sort === "asc" ? 1 : -1 } };
 
       if (visaType) {
         query = { visaType: visaType };
       }
-      const cursor = visaCollection.find(query);
+
+      if (search) {
+        query.countryName = { $regex: search, $options: "i" };
+      }
+
+      const cursor = visaCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -51,7 +61,7 @@ async function run() {
       const result = await visaCollection
         .find()
         .sort({ _id: -1 })
-        .limit(6)
+        .limit(8)
         .toArray();
       res.send(result);
     });
@@ -108,37 +118,11 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/appliedVisa", async (req, res) => {
-    //   const email = req.query.email;
-    //   const filter = { email: email };
-    //   const cursor = appliedVisaCollection.find(filter);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
-
-    // app.get("/appliedVisa", async (req, res) => {
-    //   const search = req.query.search;
-    //   const filter = { countryName: search };
-    //   const cursor = appliedVisaCollection.find(filter);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
-
     app.get("/appliedVisa", async (req, res) => {
-      let email = req.query.email;
-      const search = req.query.search;
+      const email = req.query.email;
+      const query = { email };
 
-      let filter = {};
-
-      if (email) {
-        filter.email = email;
-      }
-
-      if (search) {
-        filter.countryName = { $regex: search, $options: "i" };
-      }
-
-      const cursor = appliedVisaCollection.find(filter);
+      const cursor = appliedVisaCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
@@ -157,7 +141,6 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
   }
 }
 run().catch(console.dir);
